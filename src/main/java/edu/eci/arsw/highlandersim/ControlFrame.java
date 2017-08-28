@@ -20,6 +20,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import java.awt.Color;
+import java.lang.Thread.State;
 
 public class ControlFrame extends JFrame {
 
@@ -84,17 +85,18 @@ public class ControlFrame extends JFrame {
         JButton btnPauseAndCheck = new JButton("Pause and check");
         btnPauseAndCheck.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-
-                /*
-				 * COMPLETAR
-                 */
+                for (Immortal im : immortals) {
+                    im.setPause(true);
+                }
+                checkPause();
                 int sum = 0;
                 for (Immortal im : immortals) {
                     sum += im.getHealth();
                 }
-
                 output.setText(immortals.toString() + ". Sum:" + sum);
-
+                for (Immortal im : immortals) {
+                    im.unlock();
+                }
             }
         });
         toolBar.add(btnPauseAndCheck);
@@ -131,6 +133,19 @@ public class ControlFrame extends JFrame {
         output.setEditable(false);
         scrollPane.setViewportView(output);
 
+    }
+    
+    private void checkPause(){
+        boolean pause = immortals.get(0).getState().equals(State.WAITING);
+        for(int i = 1; i < immortals.size(); i++){
+            pause = immortals.get(i).getState().equals(State.WAITING) || pause;
+        }
+        while(!pause){
+            pause = immortals.get(0).getState().equals(State.WAITING);
+            for (int i = 1; i < immortals.size(); i++) {
+                pause = immortals.get(i).getState().equals(State.WAITING) || pause;
+            }
+        }
     }
 
     public List<Immortal> setupInmortals() {
