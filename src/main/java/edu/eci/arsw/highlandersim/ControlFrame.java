@@ -94,9 +94,6 @@ public class ControlFrame extends JFrame {
                     sum += im.getHealth();
                 }
                 output.setText(immortals.toString() + ". Sum:" + sum);
-                for (Immortal im : immortals) {
-                    im.unlock();
-                }
             }
         });
         toolBar.add(btnPauseAndCheck);
@@ -105,10 +102,9 @@ public class ControlFrame extends JFrame {
 
         btnResume.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                /**
-                 * IMPLEMENTAR
-                 */
-
+                for (Immortal im : immortals) {
+                    im.unlock();
+                }
             }
         });
 
@@ -136,10 +132,7 @@ public class ControlFrame extends JFrame {
     }
     
     private void checkPause(){
-        boolean pause = immortals.get(0).getState().equals(State.WAITING);
-        for(int i = 1; i < immortals.size(); i++){
-            pause = immortals.get(i).getState().equals(State.WAITING) || pause;
-        }
+        boolean pause = false;
         while(!pause){
             pause = immortals.get(0).getState().equals(State.WAITING);
             for (int i = 1; i < immortals.size(); i++) {
