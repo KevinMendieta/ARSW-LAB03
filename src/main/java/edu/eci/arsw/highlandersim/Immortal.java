@@ -11,16 +11,8 @@ public class Immortal extends Thread {
     private final List<Immortal> immortalsPopulation;
     private final String name;
     private final Random r = new Random(System.currentTimeMillis());
-    boolean pause = false;
+    boolean pause, running;
     private Object locker;
-
-    public void pause() {
-        pause = true;
-    }
-
-    public void cont() {
-        pause = false;
-    }
 
     public Immortal(String name, List<Immortal> immortalsPopulation, int health, int defaultDamageValue) {
         super(name);
@@ -28,12 +20,13 @@ public class Immortal extends Thread {
         this.immortalsPopulation = immortalsPopulation;
         this.health = health;
         this.defaultDamageValue=defaultDamageValue;
-        this.locker = new Object();
+        this.running = true;
+        this.pause = false;
     }
 
     @Override
     public void run() {
-        while (true) {
+        while (running) {
             if(!pause){
                 tick();
             }else{
@@ -41,15 +34,39 @@ public class Immortal extends Thread {
             }
         }
     }
-    
+
     /**
-     * 
-     * @param pause 
+     * Clear all the references of the others immortals.
+     */
+    public void clear(){
+        if(!running){
+            for(Immortal im: immortalsPopulation){
+                im = null;
+            }
+            immortalsPopulation.clear();
+        }
+    }
+
+    /**
+     * Set the state of the thread, false for stop the thread execution.
+     * @param running the state for running.
+     */
+    public void setRunning(boolean running){ this.running = running;}
+
+    /**
+     * Set a locker for pausing or notify the thread in future.
+     * @param locker the locker for the thread.
+     */
+    public void setLocker(Object locker){this.locker = locker;}
+
+    /**
+     * Set the state of the thread, true for pause the thread execution.
+     * @param pause the state for pause.
      */
     public void setPause(boolean pause){this.pause = pause;}
 
     /**
-     * 
+     * Put the thread to wait when the sate of pause is true.
      */
     public void lock(){
         synchronized (locker) {
@@ -60,9 +77,9 @@ public class Immortal extends Thread {
             }
         }
     }
-    
+
     /**
-     * 
+     * Wake up the thread when the state of pause is true.
      */
     public void unlock(){
         synchronized(locker){
@@ -72,7 +89,7 @@ public class Immortal extends Thread {
     }
 
     /**
-     * 
+     * Make the calculation for each step in execution of the thread.
      */
     private void tick(){
         Immortal im;
@@ -83,11 +100,30 @@ public class Immortal extends Thread {
             nextFighterIndex = ((nextFighterIndex + 1) % immortalsPopulation.size());
         }
         im = immortalsPopulation.get(nextFighterIndex);
-        synchronized(this){
-            synchronized(im){
-                this.fight(im);
+        //synchronize the the fight avoiding deadlocks
+        int myHash = this.hashCode();
+        int otherHash = im.hashCode();
+        if (myHash > otherHash) {
+            synchronized (this) {
+                synchronized (im) {
+                    this.fight(im);
+                }
             }
-        }        
+        }else if (myHash < otherHash) {
+            synchronized (im) {
+                synchronized (this) {
+                    this.fight(im);
+                }
+            }
+        }else{
+            synchronized(locker){
+                synchronized(this){
+                    synchronized(im){
+                        this.fight(im);
+                    }
+                } 
+            }
+        }
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {
